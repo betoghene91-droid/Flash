@@ -1,0 +1,29 @@
+name: flash
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # every 10 min — safe on a PUBLIC repo
+  workflow_dispatch:          # manual "run now" button
+
+permissions:
+  contents: write             # lets Flash save its memory
+
+concurrency: flash
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: node flash.mjs
+        env:
+          TG_TOKEN:   ${{ secrets.TG_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+      - name: Save memory
+        run: |
+          git config user.name flash
+          git config user.email flash@local
+          git add -A
+          git commit -m "state" || echo "no change"
+          git push || echo "skip"
