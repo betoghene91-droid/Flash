@@ -68,7 +68,7 @@ async function goplus(chain, addr) {
       : `https://gopluslabs.io{addr}`;
     const j = await (await fetch(url)).json();
     const keys = Object.keys(j.result || {});
-    return keys.length ? j.result[keys] : null;
+    return keys.length ? j.result[keys[0]] : null;
   } catch { return null; }
 }
 async function honeypotIs(addr, symbol) {           // EVM only — needs symbol
@@ -101,7 +101,7 @@ async function newPools(chain) {
       { headers: { accept: 'application/json' } })).json();
     return (j.data || []).map(p => ({
       chain, name: p.attributes.name,
-      sym: p.attributes.name?.split('/')?.[0]?.trim() || '',
+      sym: p.attributes.name?.split('/')[0]?.trim() || '',
       addr: (p.relationships?.base_token?.data?.id || '').split('_').slice(1).join('_'),
       liq: +p.attributes.reserve_in_usd || 0,
       fdv: +(p.attributes.fdv_usd || p.attributes.market_cap_usd) || 0,
@@ -174,7 +174,8 @@ async function hunt() {
   if (S.day !== today()) { S.day = today(); S.alertsToday = 0; }
   let fired = 0;
   for (const chain of CFG.chains) {
-    for (const t of await newPools(chain)) {
+    const pools = await newPools(chain);
+    for (const t of pools) {
       if (fired >= CFG.maxAlertsPerRun || S.alertsToday >= CFG.maxAlertsPerDay) break;
       if (!preGate(t)) { bump('pre-gate'); continue; }
 
@@ -229,4 +230,3 @@ async function resolvePapers() {
   }
 }
 function statsText() {
-  const d = S.papers.filter(p => p.result !== undefined);
